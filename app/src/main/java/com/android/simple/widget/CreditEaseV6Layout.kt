@@ -10,6 +10,10 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.AccelerateInterpolator
 import android.widget.FrameLayout
+import androidx.core.view.NestedScrollingChild
+import androidx.core.view.NestedScrollingChild2
+import androidx.core.view.NestedScrollingChild3
+import androidx.core.view.NestedScrollingChildHelper
 import androidx.recyclerview.widget.RecyclerView
 
 const val TAG = "CreditEaseV6Layout"
@@ -18,22 +22,19 @@ const val TAG = "CreditEaseV6Layout"
  *
  * @author LiuYong
  */
-class CreditEaseV6Layout @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr) {
+class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : FrameLayout(context, attrs, defStyleAttr), NestedScrollingChild {
 
     /**RecyclerView背景默认圆角大小，单位px*/
-    private val mCornerSize =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 23.0f, resources.displayMetrics)
+    private val mCornerSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 23.0f, resources.displayMetrics)
     /**RecyclerView初始偏移距离*/
     private var mOffsetY = 0.0f
     /**手势监听*/
     private var mGestureDetector = GestureDetector(context, GestureListener())
     /**弹性滑动、自动吸附*/
     private var mAdsorbAnimator: ValueAnimator? = null
-
     /**正数向上，负数向下*/
     private var mScrollerDirection = 0.0f
+    private var mNestedScrollingChildHelper = NestedScrollingChildHelper(this)
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
@@ -44,7 +45,7 @@ class CreditEaseV6Layout @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
-        Log.d(TAG, "onInterceptTouchEvent")
+        Log.d(TAG, "onInterceptTouchEvent = ${mGestureDetector.onTouchEvent(ev)}")
         return mGestureDetector.onTouchEvent(ev)
     }
 
@@ -122,7 +123,6 @@ class CreditEaseV6Layout @JvmOverloads constructor(
         }
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent?, distanceX: Float, distanceY: Float): Boolean {
-            parent.requestDisallowInterceptTouchEvent(true)
             Log.d(TAG, "onScroll - distanceY = $distanceY, e1 = ${e1?.actionMasked == MotionEvent.ACTION_UP}, e2 = ${e2?.actionMasked == MotionEvent.ACTION_UP}")
             mScrollerDirection = distanceY
             val rv = getChildAt(1) as RecyclerView
@@ -161,5 +161,4 @@ class CreditEaseV6Layout @JvmOverloads constructor(
             Log.d(TAG, "onLongPress")
         }
     }
-
 }
