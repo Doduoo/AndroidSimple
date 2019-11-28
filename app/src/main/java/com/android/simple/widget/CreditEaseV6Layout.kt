@@ -122,6 +122,7 @@ class CreditEaseV6Layout @JvmOverloads constructor(
         }
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent?, distanceX: Float, distanceY: Float): Boolean {
+            parent.requestDisallowInterceptTouchEvent(true)
             Log.d(TAG, "onScroll - distanceY = $distanceY, e1 = ${e1?.actionMasked == MotionEvent.ACTION_UP}, e2 = ${e2?.actionMasked == MotionEvent.ACTION_UP}")
             mScrollerDirection = distanceY
             val rv = getChildAt(1) as RecyclerView
