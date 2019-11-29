@@ -19,13 +19,5 @@ class CreditEaseV6LayoutActivity : AppCompatActivity() {
         headButton.setOnClickListener {
             Toast.makeText(this, headButton.text, Toast.LENGTH_SHORT).show()
         }
-
-        refreshLayout.setOnRefreshListener {
-            it.finishRefresh(1000)
-        }
-
-        refreshLayout.setOnLoadMoreListener {
-            it.finishLoadMore(1000)
-        }
     }
 }

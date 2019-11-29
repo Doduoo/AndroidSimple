@@ -10,10 +10,6 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.AccelerateInterpolator
 import android.widget.FrameLayout
-import androidx.core.view.NestedScrollingChild
-import androidx.core.view.NestedScrollingChild2
-import androidx.core.view.NestedScrollingChild3
-import androidx.core.view.NestedScrollingChildHelper
 import androidx.recyclerview.widget.RecyclerView
 
 const val TAG = "CreditEaseV6Layout"
@@ -22,7 +18,7 @@ const val TAG = "CreditEaseV6Layout"
  *
  * @author LiuYong
  */
-class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : FrameLayout(context, attrs, defStyleAttr), NestedScrollingChild {
+class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : FrameLayout(context, attrs, defStyleAttr) {
 
     /**RecyclerView背景默认圆角大小，单位px*/
     private val mCornerSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 23.0f, resources.displayMetrics)
@@ -34,7 +30,10 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
     private var mAdsorbAnimator: ValueAnimator? = null
     /**正数向上，负数向下*/
     private var mScrollerDirection = 0.0f
-    private var mNestedScrollingChildHelper = NestedScrollingChildHelper(this)
+    private var mDamping = 0.5f
+    private var mMaxDragDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100.0f, resources.displayMetrics)
+
+    // https://daemon369.github.io/android/2014/08/17/android-onInterceptTouchEvent-onTouchEvent
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
@@ -46,11 +45,14 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
 
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
         Log.d(TAG, "onInterceptTouchEvent = ${mGestureDetector.onTouchEvent(ev)}")
-        return mGestureDetector.onTouchEvent(ev)
+        return true
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         Log.d(TAG, "onTouchEvent")
+        if(event?.actionMasked == MotionEvent.ACTION_DOWN) {
+            return true
+        }
         if (event?.actionMasked == MotionEvent.ACTION_UP) {
             autoScrollRecyclerViewLayout(mScrollerDirection > 0)
             return true
