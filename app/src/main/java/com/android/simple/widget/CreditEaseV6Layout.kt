@@ -10,6 +10,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.AccelerateInterpolator
 import android.widget.FrameLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 const val TAG = "CreditEaseV6Layout"
@@ -25,7 +26,8 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
     /**RecyclerView初始偏移距离*/
     private var mOffsetY = 0.0f
     /**手势监听*/
-    private var mGestureDetector = GestureDetector(context, GestureListener())
+    private var mGestureDetector = GestureDetector(context, ScrollGestureListener())
+    private var mInterceptGestureDetector = GestureDetector(context, InterceptGestureListener())
     /**弹性滑动、自动吸附*/
     private var mAdsorbAnimator: ValueAnimator? = null
     /**正数向上，负数向下*/
@@ -44,7 +46,17 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
 
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
         Log.d(TAG, "onInterceptTouchEvent = ${mGestureDetector.onTouchEvent(ev)}")
-        return true
+        val recyclerView = getChildAt(1) as  RecyclerView
+        val linearLayoutManager = recyclerView.layoutManager as LinearLayoutManager
+        if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(1)) {
+            return false
+        }
+
+        if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(-1) && linearLayoutManager.findFirstCompletelyVisibleItemPosition() != 0) {
+            return false
+        }
+
+        return mInterceptGestureDetector.onTouchEvent(ev)
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -103,7 +115,8 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
         }
     }
 
-    inner class GestureListener : GestureDetector.OnGestureListener {
+
+    inner class ScrollGestureListener : GestureDetector.OnGestureListener {
         override fun onShowPress(e: MotionEvent?) {
             Log.d(TAG, "onShowPress")
         }
@@ -155,6 +168,36 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
                     return false
                 }
             }
+            return true
+        }
+
+        override fun onLongPress(e: MotionEvent?) {
+            Log.d(TAG, "onLongPress")
+        }
+    }
+
+
+    inner class InterceptGestureListener : GestureDetector.OnGestureListener {
+        override fun onShowPress(e: MotionEvent?) {
+            Log.d(TAG, "onShowPress")
+        }
+
+        override fun onSingleTapUp(e: MotionEvent?): Boolean {
+            Log.d(TAG, "onSingleTapUp")
+            return false
+        }
+
+        override fun onDown(e: MotionEvent?): Boolean {
+            Log.d(TAG, "onDown")
+            return false
+        }
+
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
+            Log.d(TAG, "onFling - velocityY = $velocityY")
+            return false
+        }
+
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent?, distanceX: Float, distanceY: Float): Boolean {
             return true
         }
 
