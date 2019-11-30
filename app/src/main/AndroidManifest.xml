@@ -14,6 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <activity android:name=".event.EventActivity"></activity>
         <activity
             android:name=".ui.v6.CreditEaseV6LayoutActivity"
             android:label="@string/app_name"
