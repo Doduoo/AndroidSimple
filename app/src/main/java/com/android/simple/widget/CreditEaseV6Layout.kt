@@ -33,7 +33,6 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
     private var mDamping = 0.5f
     private var mMaxDragDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100.0f, resources.displayMetrics)
 
-    // https://daemon369.github.io/android/2014/08/17/android-onInterceptTouchEvent-onTouchEvent
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
