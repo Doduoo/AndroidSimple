@@ -6,6 +6,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
+import android.view.DragEvent
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.AccelerateInterpolator
@@ -32,9 +33,8 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
     private var mAdsorbAnimator: ValueAnimator? = null
     /**正数向上，负数向下*/
     private var mScrollerDirection = 0.0f
-    private var mDamping = 0.5f
-    private var mMaxDragDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100.0f, resources.displayMetrics)
-
+    private var mIsScrollUp = false
+    private var mLastFocusY = 0.0f
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
@@ -44,19 +44,50 @@ class CreditEaseV6Layout @JvmOverloads constructor(context: Context, attrs: Attr
         recyclerView.translationY = mOffsetY
     }
 
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        when(ev?.actionMasked) {
+            MotionEvent.ACTION_DOWN->{
+                mLastFocusY = ev.y
+            }
+            MotionEvent.ACTION_MOVE->{
+                mIsScrollUp = (ev.y - mLastFocusY) < 0
+                mLastFocusY = ev.y
+            }
+            MotionEvent.ACTION_UP->{
+                mLastFocusY = 0.0f
+            }
+            MotionEvent.ACTION_CANCEL->{
+                mLastFocusY = 0.0f
+                mIsScrollUp = true
+            }
+        }
+        val bool = super.dispatchTouchEvent(ev)
+        Log.d(TAG, "dispatchTouchEvent = ${ev?.action} - $bool， y = ${ev?.y}")
+        return bool
+    }
+
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
-        Log.d(TAG, "onInterceptTouchEvent = ${mGestureDetector.onTouchEvent(ev)}")
+        var consumed = mInterceptGestureDetector.onTouchEvent(ev)
         val recyclerView = getChildAt(1) as  RecyclerView
         val linearLayoutManager = recyclerView.layoutManager as LinearLayoutManager
-        if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(1)) {
-            return false
+
+        if(ev?.actionMasked == MotionEvent.ACTION_MOVE) {
+            if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(1)) {
+                consumed =  false
+            }
+
+            if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(-1) && linearLayoutManager.findFirstCompletelyVisibleItemPosition() != 0) {
+                consumed =  false
+            }
+
+            if( linearLayoutManager.findFirstCompletelyVisibleItemPosition() == 0 && !mIsScrollUp) {
+                parent.requestDisallowInterceptTouchEvent(true)
+                consumed = true
+            }
         }
 
-        if(recyclerView.translationY == .0f && recyclerView.canScrollVertically(-1) && linearLayoutManager.findFirstCompletelyVisibleItemPosition() != 0) {
-            return false
-        }
-
-        return mInterceptGestureDetector.onTouchEvent(ev)
+        Log.d(TAG, "onInterceptTouchEvent = ${ev?.actionMasked} - $consumed")
+        return consumed
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
