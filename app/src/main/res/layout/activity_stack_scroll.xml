@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.scwang.smartrefresh.layout.SmartRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:srlEnableLoadMore="true"
-    app:srlEnableOverScrollBounce="true"
-    app:srlEnableRefresh="true">
+    tools:context=".v6.StackScrollActivity">
 
-    <com.android.simple.widget.CreditEaseV6Layout
-        android:id="@+id/crediteaseV6Layout"
+    <com.android.simple.ui.v6.StackScrollLayout
+        android:id="@+id/stackScrollLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_anchor="@id/refreshText">
+        app:anchor="@id/headButton">
 
         <LinearLayout
             android:id="@+id/headLayout"
@@ -22,19 +21,19 @@
             android:focusable="true"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/refreshText"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/bannerRecyclerView"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:alpha="0"
-                android:gravity="center"
-                android:text="下拉刷新"
-                android:textColor="@android:color/white" />
+                android:overScrollMode="never"
+                android:layout_height="144dp"
+                android:layout_marginTop="24dp" />
 
             <Button
                 android:id="@+id/headButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:layout_marginBottom="33dp"
                 android:text="Head Button"
                 android:textAllCaps="false"
                 android:textColor="@color/colorAccent" />
@@ -45,9 +44,9 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:overScrollMode="never"
             android:background="@drawable/shape_recycler_view_background" />
 
-    </com.android.simple.widget.CreditEaseV6Layout>
+    </com.android.simple.ui.v6.StackScrollLayout>
 
-</com.scwang.smartrefresh.layout.SmartRefreshLayout>
-
+</androidx.constraintlayout.widget.ConstraintLayout>
