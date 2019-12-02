@@ -50,6 +50,7 @@ public class StackScrollLayout extends FrameLayout {
      */
     private int mLastFocusY;
     private boolean mIsScrollUp = false;
+    private int mTouchSlop;
 
     public StackScrollLayout(@NonNull Context context) {
         this(context, null);
@@ -65,6 +66,8 @@ public class StackScrollLayout extends FrameLayout {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.StackScrollLayout);
         mAnchorId = typedArray.getResourceId(0, -1);
         typedArray.recycle();
+
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     @Override
@@ -113,6 +116,7 @@ public class StackScrollLayout extends FrameLayout {
             case MotionEvent.ACTION_DOWN:
                 break;
             case MotionEvent.ACTION_MOVE:
+                if(Math.abs(mScrollY) < mTouchSlop) return false;
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
                     final LinearLayoutManager layoutManager = (LinearLayoutManager) mRecyclerView.getLayoutManager();
@@ -149,7 +153,6 @@ public class StackScrollLayout extends FrameLayout {
         final LinearLayoutManager layoutManager = (LinearLayoutManager) mRecyclerView.getLayoutManager();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                consumed = true;
             case MotionEvent.ACTION_MOVE:
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
