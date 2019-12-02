@@ -24,9 +24,9 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/bannerRecyclerView"
                 android:layout_width="match_parent"
-                android:overScrollMode="never"
                 android:layout_height="144dp"
-                android:layout_marginTop="24dp" />
+                android:layout_marginTop="24dp"
+                android:overScrollMode="never" />
 
             <Button
                 android:id="@+id/headButton"
@@ -44,8 +44,8 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:overScrollMode="never"
-            android:background="@drawable/shape_recycler_view_background" />
+            android:background="@drawable/shape_recycler_view_background"
+            android:overScrollMode="never" />
 
     </com.android.simple.ui.v6.StackScrollLayout>
 
