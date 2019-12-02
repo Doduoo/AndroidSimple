@@ -1,13 +1,17 @@
 package com.android.simple.ui.v6;
 
+import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -37,6 +41,7 @@ public class StackScrollLayout extends FrameLayout {
      * recyclerView
      */
     private RecyclerView mRecyclerView;
+    private Rect mTempRect = new Rect();
     /**
      * 初始recyclerView 上边缘坐标
      */
@@ -45,12 +50,18 @@ public class StackScrollLayout extends FrameLayout {
      * 手势垂直方向滑动距离，正数向下滑动、负数向上滑动
      */
     private int mScrollY;
+    private int mScrollX;
     /**
      * 上一个滑动位置的Y坐标
      */
     private int mLastFocusY;
+    private int mLastFocusX;
     private boolean mIsScrollUp = false;
     private int mTouchSlop;
+    /**
+     * 弹性滑动、自动吸附
+     */
+    private ValueAnimator mAdsorbAnimator;
 
     public StackScrollLayout(@NonNull Context context) {
         this(context, null);
@@ -81,27 +92,30 @@ public class StackScrollLayout extends FrameLayout {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         final int y = (int) (ev.getY() + 0.5f);
+        final int x = (int) (ev.getX() + 0.5f);
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mLastFocusY = y;
+                mLastFocusX = x;
                 break;
             case MotionEvent.ACTION_MOVE:
-                // 如果是垂直滑动
-                if (ev.getY() > ev.getX()) {
-                    int deltaY = y - mLastFocusY;
-                    mScrollY = deltaY;
-                    mLastFocusY = y;
-                    mIsScrollUp = deltaY < 0;
-                    if (deltaY > 0) {
-                        Log.d(TAG, "向下滑动 = " + mScrollY);
-                    } else {
-                        Log.d(TAG, "向上滑动 = " + mScrollY);
-                    }
-                }
+                int deltaY = y - mLastFocusY;
+                int deltaX = x - mLastFocusY;
+                mScrollY = deltaY;
+                mScrollX = deltaX;
+                mLastFocusY = y;
+                mIsScrollUp = deltaY < 0;
+//                if (deltaY > 0) {
+//                    Log.d(TAG, "向下滑动 = " + mScrollY);
+//                } else {
+//                    Log.d(TAG, "向上滑动 = " + mScrollY);
+//                }
+
                 break;
             case MotionEvent.ACTION_UP:
                 mLastFocusY = 0;
                 mScrollY = 0;
+                mScrollX = 0;
                 break;
             default:
                 break;
@@ -116,7 +130,9 @@ public class StackScrollLayout extends FrameLayout {
             case MotionEvent.ACTION_DOWN:
                 break;
             case MotionEvent.ACTION_MOVE:
-                if(Math.abs(mScrollY) < mTouchSlop) return false;
+                if(ev.getPointerCount() != 1) return true;
+                mRecyclerView.getGlobalVisibleRect(mTempRect);
+                if (!mTempRect.contains((int) ev.getRawX(), (int) ev.getRawY())) return false;
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
                     final LinearLayoutManager layoutManager = (LinearLayoutManager) mRecyclerView.getLayoutManager();
@@ -132,8 +148,6 @@ public class StackScrollLayout extends FrameLayout {
                     }
                 }
                 break;
-            case MotionEvent.ACTION_UP:
-                break;
             default:
                 consumed = super.onInterceptTouchEvent(ev);
                 break;
@@ -147,6 +161,7 @@ public class StackScrollLayout extends FrameLayout {
         return super.performClick();
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         boolean consumed = false;
@@ -154,6 +169,8 @@ public class StackScrollLayout extends FrameLayout {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
+                if (Math.abs(mScrollY) < mTouchSlop) return false;
+                if(event.getPointerCount() != 1) return true;
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
                     if (mRecyclerView.getTranslationY() != 0) {
@@ -178,9 +195,10 @@ public class StackScrollLayout extends FrameLayout {
                 }
                 break;
             case MotionEvent.ACTION_UP:
+                autoScrollAnimator();
                 break;
             default:
-                consumed = super.onInterceptTouchEvent(event);
+                consumed = super.onTouchEvent(event);
                 break;
         }
         Log.d(TAG, "onTouchEvent consumed = " + consumed + ", action = " + event.getAction());
@@ -219,4 +237,30 @@ public class StackScrollLayout extends FrameLayout {
         }
     }
 
+    private void autoScrollAnimator() {
+        final float tranY = mRecyclerView.getTranslationY();
+        if (tranY >= 0 && tranY <= mInitialTop) {
+            if (tranY <= mInitialTop * 0.15 && tranY >= 0) {
+                mAdsorbAnimator = ValueAnimator.ofFloat(tranY, 0.0f);
+            } else if (tranY >= mInitialTop * 0.85 && tranY <= mInitialTop) {
+                mAdsorbAnimator = ValueAnimator.ofFloat(tranY, mInitialTop);
+            } else {
+                if (mIsScrollUp) {
+                    mAdsorbAnimator = ValueAnimator.ofFloat(tranY, 0.0f);
+                } else {
+                    mAdsorbAnimator = ValueAnimator.ofFloat(tranY, mInitialTop);
+                }
+            }
+            mAdsorbAnimator.setDuration(250);
+            mAdsorbAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            mAdsorbAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    final float value = (float) animation.getAnimatedValue();
+                    mRecyclerView.setTranslationY(value);
+                }
+            });
+            mAdsorbAnimator.start();
+        }
+    }
 }
