@@ -5,7 +5,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -13,6 +12,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
+import android.widget.Scroller;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,6 +33,30 @@ public class StackScrollLayout extends FrameLayout {
     private static final String TAG = "StackScrollLayout";
 
     /**
+     * 下拉状态
+     */
+    private final int STATUS_PULL_TO_REFRESH = 0;
+    /**
+     * 上拉状态
+     */
+    private static final int STATUS_LOAD_MORE = 1;
+    /**
+     * 刷新、加载释放状态
+     */
+    private final int STATUS_RELEASE = 2;
+    /**
+     * 正在刷新状态
+     */
+    private static final int STATUS_REFRESHING_LOADING = 3;
+    /**
+     * 刷新完成或未刷新状态
+     */
+    private static final int STATUS_REFRESH_FINISHED = 4;
+    /**
+     * 当前刷新状态
+     */
+    private int mCurrentStatus = STATUS_REFRESH_FINISHED;
+    /**
      * 底部列表顶部对齐的锚点
      */
     private View mAnchorView;
@@ -49,19 +73,19 @@ public class StackScrollLayout extends FrameLayout {
     /**
      * 手势垂直方向滑动距离，正数向下滑动、负数向上滑动
      */
-    private int mScrollY;
-    private int mScrollX;
+    private int mDistanceY;
     /**
      * 上一个滑动位置的Y坐标
      */
     private int mLastFocusY;
-    private int mLastFocusX;
+    /**
+     * 摩擦系数
+     */
+    private float mScrollFriction = 0.5f;
+    private int mTotalScrollY;
     private boolean mIsScrollUp = false;
     private int mTouchSlop;
-    /**
-     * 弹性滑动、自动吸附
-     */
-    private ValueAnimator mAdsorbAnimator;
+    private Scroller mScroller;
 
     public StackScrollLayout(@NonNull Context context) {
         this(context, null);
@@ -79,6 +103,7 @@ public class StackScrollLayout extends FrameLayout {
         typedArray.recycle();
 
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        mScroller = new Scroller(context);
     }
 
     @Override
@@ -86,7 +111,7 @@ public class StackScrollLayout extends FrameLayout {
         super.onLayout(changed, left, top, right, bottom);
         MarginLayoutParams anchorMargin = (MarginLayoutParams) mAnchorView.getLayoutParams();
         mInitialTop = mAnchorView.getBottom() + anchorMargin.bottomMargin;
-        mRecyclerView.setTranslationY(mInitialTop + mScrollY);
+        mRecyclerView.setTranslationY(mInitialTop + mDistanceY);
     }
 
     @Override
@@ -96,26 +121,22 @@ public class StackScrollLayout extends FrameLayout {
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mLastFocusY = y;
-                mLastFocusX = x;
                 break;
             case MotionEvent.ACTION_MOVE:
                 int deltaY = y - mLastFocusY;
-                int deltaX = x - mLastFocusY;
-                mScrollY = deltaY;
-                mScrollX = deltaX;
+                mDistanceY = deltaY;
                 mLastFocusY = y;
                 mIsScrollUp = deltaY < 0;
 //                if (deltaY > 0) {
-//                    Log.d(TAG, "向下滑动 = " + mScrollY);
+//                    Log.d(TAG, "向下滑动 = " + mDistanceY);
 //                } else {
-//                    Log.d(TAG, "向上滑动 = " + mScrollY);
+//                    Log.d(TAG, "向上滑动 = " + mDistanceY);
 //                }
 
                 break;
             case MotionEvent.ACTION_UP:
                 mLastFocusY = 0;
-                mScrollY = 0;
-                mScrollX = 0;
+                mDistanceY = 0;
                 break;
             default:
                 break;
@@ -156,11 +177,6 @@ public class StackScrollLayout extends FrameLayout {
         return consumed;
     }
 
-    @Override
-    public boolean performClick() {
-        return super.performClick();
-    }
-
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -169,24 +185,32 @@ public class StackScrollLayout extends FrameLayout {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
-                if (Math.abs(mScrollY) < mTouchSlop) return false;
                 if(event.getPointerCount() != 1) return true;
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
                     if (mRecyclerView.getTranslationY() != 0) {
-                        updateRecyclerViewTransitionY(mScrollY);
+                        if (Math.abs(mDistanceY) < mTouchSlop) return false;
+                        updateRecyclerViewTransitionY(mDistanceY);
                         consumed = true;
                     } else if (layoutManager != null && layoutManager.findLastCompletelyVisibleItemPosition() == layoutManager.getItemCount() - 1) {
                         // recyclerView 内部不能再向上滑动时(加载更多)
-                        Log.d(TAG, "加载更多");
+                        mCurrentStatus = STATUS_LOAD_MORE;
                         consumed = true;
+                        invalidate();
                     }
                 } else {
                     if (layoutManager != null && layoutManager.findFirstCompletelyVisibleItemPosition() == 0) {
                         if (mRecyclerView.getTranslationY() == mInitialTop) {
-                            Log.d(TAG, "下拉刷新");
+                            // recyclerView 滑动到底部并且内部不能再向下滑动时(下拉刷新)
+                            mCurrentStatus = STATUS_PULL_TO_REFRESH;
+                            final int distance = (int) (-mDistanceY * mScrollFriction);
+                            Log.d(TAG, "mTotalScrollY = " + mTotalScrollY + " mDistanceY = " + mDistanceY);
+                            mScroller.startScroll(0, mTotalScrollY, 0, distance);
+                            mTotalScrollY += distance;
+                            invalidate();
                         } else {
-                            updateRecyclerViewTransitionY(mScrollY);
+                            if (Math.abs(mDistanceY) < mTouchSlop) return false;
+                            updateRecyclerViewTransitionY(mDistanceY);
                         }
                         consumed = true;
                     } else {
@@ -195,7 +219,12 @@ public class StackScrollLayout extends FrameLayout {
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                autoScrollAnimator();
+                if(mCurrentStatus == STATUS_PULL_TO_REFRESH || mCurrentStatus == STATUS_LOAD_MORE) {
+                    mCurrentStatus = STATUS_RELEASE;
+                    rollBack();
+                } else {
+                    autoScrollAnimator();
+                }
                 break;
             default:
                 consumed = super.onTouchEvent(event);
@@ -203,6 +232,14 @@ public class StackScrollLayout extends FrameLayout {
         }
         Log.d(TAG, "onTouchEvent consumed = " + consumed + ", action = " + event.getAction());
         return consumed;
+    }
+
+    @Override
+    public void computeScroll() {
+        if(mScroller.computeScrollOffset()) {
+            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            invalidate();
+        }
     }
 
     @Override
@@ -237,9 +274,18 @@ public class StackScrollLayout extends FrameLayout {
         }
     }
 
+    private void rollBack() {
+        if(mCurrentStatus == STATUS_RELEASE) {
+            mScroller.startScroll(0, mTotalScrollY, 0, -mTotalScrollY);
+            mTotalScrollY = 0;
+            invalidate();
+        }
+    }
+
     private void autoScrollAnimator() {
         final float tranY = mRecyclerView.getTranslationY();
         if (tranY >= 0 && tranY <= mInitialTop) {
+            ValueAnimator mAdsorbAnimator;
             if (tranY <= mInitialTop * 0.15 && tranY >= 0) {
                 mAdsorbAnimator = ValueAnimator.ofFloat(tranY, 0.0f);
             } else if (tranY >= mInitialTop * 0.85 && tranY <= mInitialTop) {
@@ -263,4 +309,5 @@ public class StackScrollLayout extends FrameLayout {
             mAdsorbAnimator.start();
         }
     }
+
 }
