@@ -57,6 +57,30 @@ public class StackScrollLayout extends FrameLayout {
      */
     private int mCurrentStatus = STATUS_REFRESH_FINISHED;
     /**
+     * 触发下拉刷新高度
+     */
+    private final int DEFAULT_HEADER_HEIGHT = 100;
+    /**
+     * 触发上拉加载高度
+     */
+    private final int DEFAULT_FOOTER_HEIGHT = 60;
+    /**
+     * 最大拖动比率(最大高度/Header高度)
+     */
+    protected float mHeaderMaxDragRate = 2.0f;
+    /**
+     * 最大拖动比率(最大高度/Footer高度)
+     */
+    protected float mFooterMaxDragRate = 2.0f;
+    /**
+     * 触发刷新距离 与 HeaderHeight 的比率
+     */
+    protected float mHeaderTriggerRate = 1.0f;
+    /**
+     * 触发加载距离 与 FooterHeight 的比率
+     */
+    protected float mFooterTriggerRate = 1.0f;
+    /**
      * 底部列表顶部对齐的锚点
      */
     private View mAnchorView;
@@ -87,6 +111,8 @@ public class StackScrollLayout extends FrameLayout {
     private int mTouchSlop;
     private Scroller mScroller;
 
+    private OnRefreshListener mOnRefreshListener;
+
     public StackScrollLayout(@NonNull Context context) {
         this(context, null);
     }
@@ -104,6 +130,14 @@ public class StackScrollLayout extends FrameLayout {
 
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mScroller = new Scroller(context);
+    }
+
+    public OnRefreshListener getOnRefreshListener() {
+        return mOnRefreshListener;
+    }
+
+    public void setOnRefreshListener(OnRefreshListener refreshListener) {
+        this.mOnRefreshListener = refreshListener;
     }
 
     @Override
@@ -127,12 +161,6 @@ public class StackScrollLayout extends FrameLayout {
                 mDistanceY = deltaY;
                 mLastFocusY = y;
                 mIsScrollUp = deltaY < 0;
-//                if (deltaY > 0) {
-//                    Log.d(TAG, "向下滑动 = " + mDistanceY);
-//                } else {
-//                    Log.d(TAG, "向上滑动 = " + mDistanceY);
-//                }
-
                 break;
             case MotionEvent.ACTION_UP:
                 mLastFocusY = 0;
@@ -204,7 +232,6 @@ public class StackScrollLayout extends FrameLayout {
                             // recyclerView 滑动到底部并且内部不能再向下滑动时(下拉刷新)
                             mCurrentStatus = STATUS_PULL_TO_REFRESH;
                             final int distance = (int) (-mDistanceY * mScrollFriction);
-                            Log.d(TAG, "mTotalScrollY = " + mTotalScrollY + " mDistanceY = " + mDistanceY);
                             mScroller.startScroll(0, mTotalScrollY, 0, distance);
                             mTotalScrollY += distance;
                             invalidate();
@@ -310,4 +337,21 @@ public class StackScrollLayout extends FrameLayout {
         }
     }
 
+    /**
+     * 刷新接口
+     */
+    public interface OnRefreshListener {
+        /**
+         * 触发刷新时候回调
+         */
+        void onRefresh();
+
+        /**
+         * 刷新下拉进度，[-1.0-1.0]，当progress为1.0时回调{@link OnRefreshListener#onRefresh()}
+         * 0~-1 刷新完成回滚状态，0-1为进行刷新，
+         *
+         * @param progress 刷新下来进度
+         */
+        void onRefreshProgress(float progress);
+    }
 }
