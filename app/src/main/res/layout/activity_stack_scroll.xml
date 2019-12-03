@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".v6.StackScrollActivity">
+    tools:context=".xiami.StackScrollActivity">
 
-    <com.android.simple.ui.v6.StackScrollLayout
+    <com.android.simple.xiami.StackScrollLayout
         android:id="@+id/stackScrollLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -47,6 +47,6 @@
             android:background="@drawable/shape_recycler_view_background"
             android:overScrollMode="never" />
 
-    </com.android.simple.ui.v6.StackScrollLayout>
+    </com.android.simple.xiami.StackScrollLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

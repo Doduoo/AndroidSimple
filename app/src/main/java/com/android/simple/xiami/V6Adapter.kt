@@ -1,4 +1,4 @@
-package com.android.simple.ui.v6
+package com.android.simple.xiami
 
 import android.view.LayoutInflater
 import android.view.View

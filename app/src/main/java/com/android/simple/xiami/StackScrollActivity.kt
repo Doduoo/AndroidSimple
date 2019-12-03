@@ -1,4 +1,4 @@
-package com.android.simple.v6
+package com.android.simple.xiami
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -6,8 +6,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.simple.R
-import com.android.simple.ui.v6.StackScrollLayout
-import com.android.simple.ui.v6.V6Adapter
 import kotlinx.android.synthetic.main.activity_stack_scroll.*
 
 const val TAG = "StackScrollActivity"
@@ -28,7 +26,7 @@ class StackScrollActivity : AppCompatActivity() {
             Toast.makeText(this, headButton.text, Toast.LENGTH_SHORT).show()
         }
 
-        stackScrollLayout.refreshListener = object : StackScrollLayout.OnRefreshListener {
+        stackScrollLayout.setRefreshListener(object : StackScrollLayout.OnRefreshListener {
             override fun onRefreshMoving(progress: Float) {
                 Log.d(TAG, "下拉刷新进度 = $progress")
             }
@@ -36,9 +34,9 @@ class StackScrollActivity : AppCompatActivity() {
             override fun onRefresh() {
                 Toast.makeText(this@StackScrollActivity, "下拉刷新了", Toast.LENGTH_SHORT).show()
             }
-        }
+        })
 
-        stackScrollLayout.loadMoreListener = object : StackScrollLayout.OnLoadMoreListener {
+        stackScrollLayout.setLoadMoreListener(object : StackScrollLayout.OnLoadMoreListener {
             override fun onLoadMoving(progress: Float) {
                 Log.d(TAG, "加载更多进度 = $progress")
             }
@@ -46,6 +44,6 @@ class StackScrollActivity : AppCompatActivity() {
             override fun onLoadMore() {
                 Toast.makeText(this@StackScrollActivity, "加载更多", Toast.LENGTH_SHORT).show()
             }
-        }
+        })
     }
 }

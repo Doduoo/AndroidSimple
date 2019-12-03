@@ -1,4 +1,4 @@
-package com.android.simple.ui.v6;
+package com.android.simple.xiami;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -10,7 +10,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.Scroller;
@@ -36,39 +35,35 @@ public class StackScrollLayout extends FrameLayout {
     /**
      * 下拉状态
      */
-    private final int STATUS_PULL_TO_REFRESH = 0;
+    protected final int STATUS_PULL_TO_REFRESH = 0;
     /**
      * 上拉状态
      */
-    private static final int STATUS_LOAD_MORE = 1;
+    protected static final int STATUS_LOAD_MORE = 1;
     /**
      * 刷新、加载释放状态
      */
-    private final int STATUS_RELEASE = 2;
-    /**
-     * 正在刷新状态
-     */
-    private static final int STATUS_REFRESHING_LOADING = 3;
+    protected final int STATUS_RELEASE = 2;
     /**
      * 刷新完成或未刷新状态
      */
-    private static final int STATUS_REFRESH_FINISHED = 4;
+    protected static final int STATUS_REFRESH_FINISHED = 4;
     /**
      * 当前刷新状态
      */
-    private int mCurrentStatus = STATUS_REFRESH_FINISHED;
+    protected int mCurrentStatus = STATUS_REFRESH_FINISHED;
     /**
      * 上一个滑动状态
      */
-    private int mLastStatus = mCurrentStatus;
+    protected int mLastStatus = mCurrentStatus;
     /**
      * 触发下拉刷新高度
      */
-    private final int DEFAULT_HEADER_HEIGHT = 100;
+    protected final int DEFAULT_HEADER_HEIGHT = 100;
     /**
      * 触发上拉加载高度
      */
-    private final int DEFAULT_FOOTER_HEIGHT = 60;
+    protected final int DEFAULT_FOOTER_HEIGHT = 60;
     /**
      * 最大拖动比率(最大高度/Header高度)
      */
@@ -110,13 +105,26 @@ public class StackScrollLayout extends FrameLayout {
     /**
      * 摩擦系数
      */
-    private float mScrollFriction = 0.5f;
+    protected float mScrollFriction = 0.5f;
+    /**
+     * 垂直方向一共滑动的距离
+     */
     private int mTotalScrollY;
+    /**
+     * 是否是向上滑动
+     */
     private boolean mIsScrollUp = false;
-    private int mTouchSlop;
+    /**
+     * 刷新、加载滑动
+     */
     private Scroller mScroller;
-
+    /**
+     * 下拉刷新监听
+     */
     private OnRefreshListener mRefreshListener;
+    /**
+     * 加载更多监听
+     */
     private OnLoadMoreListener mLoadMoreListener;
 
     public StackScrollLayout(@NonNull Context context) {
@@ -134,7 +142,6 @@ public class StackScrollLayout extends FrameLayout {
         mAnchorId = typedArray.getResourceId(0, -1);
         typedArray.recycle();
 
-        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mScroller = new Scroller(context);
 
         final float density = Resources.getSystem().getDisplayMetrics().density;
@@ -142,16 +149,8 @@ public class StackScrollLayout extends FrameLayout {
         mHeaderHeight = (int) (DEFAULT_HEADER_HEIGHT * density);
     }
 
-    public OnRefreshListener getRefreshListener() {
-        return mRefreshListener;
-    }
-
     public void setRefreshListener(OnRefreshListener refreshListener) {
         this.mRefreshListener = refreshListener;
-    }
-
-    public OnLoadMoreListener getLoadMoreListener() {
-        return mLoadMoreListener;
     }
 
     public void setLoadMoreListener(OnLoadMoreListener loadMoreListener) {
