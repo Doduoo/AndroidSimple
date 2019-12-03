@@ -28,17 +28,24 @@ class StackScrollActivity : AppCompatActivity() {
             Toast.makeText(this, headButton.text, Toast.LENGTH_SHORT).show()
         }
 
-        stackScrollLayout.onRefreshListener = object : StackScrollLayout.OnRefreshListener {
-            override fun onRefreshProgress(progress: Float) {
-                Toast.makeText(this@StackScrollActivity, "下拉刷新进度 = $progress", Toast.LENGTH_SHORT).show()
+        stackScrollLayout.refreshListener = object : StackScrollLayout.OnRefreshListener {
+            override fun onRefreshMoving(progress: Float) {
                 Log.d(TAG, "下拉刷新进度 = $progress")
             }
 
             override fun onRefresh() {
                 Toast.makeText(this@StackScrollActivity, "下拉刷新了", Toast.LENGTH_SHORT).show()
-                Log.d(TAG, "下拉刷新了")
+            }
+        }
+
+        stackScrollLayout.loadMoreListener = object : StackScrollLayout.OnLoadMoreListener {
+            override fun onLoadMoving(progress: Float) {
+                Log.d(TAG, "加载更多进度 = $progress")
             }
 
+            override fun onLoadMore() {
+                Toast.makeText(this@StackScrollActivity, "加载更多", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

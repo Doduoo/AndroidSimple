@@ -3,6 +3,7 @@ package com.android.simple.ui.v6;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -57,6 +58,10 @@ public class StackScrollLayout extends FrameLayout {
      */
     private int mCurrentStatus = STATUS_REFRESH_FINISHED;
     /**
+     * 上一个滑动状态
+     */
+    private int mLastStatus = mCurrentStatus;
+    /**
      * 触发下拉刷新高度
      */
     private final int DEFAULT_HEADER_HEIGHT = 100;
@@ -67,19 +72,19 @@ public class StackScrollLayout extends FrameLayout {
     /**
      * 最大拖动比率(最大高度/Header高度)
      */
-    protected float mHeaderMaxDragRate = 2.0f;
+    protected float mHeaderMaxDragRate = 1.3f;
     /**
      * 最大拖动比率(最大高度/Footer高度)
      */
-    protected float mFooterMaxDragRate = 2.0f;
+    protected float mFooterMaxDragRate = 1.3f;
     /**
-     * 触发刷新距离 与 HeaderHeight 的比率
+     * 头部高度
      */
-    protected float mHeaderTriggerRate = 1.0f;
+    protected int mHeaderHeight;
     /**
-     * 触发加载距离 与 FooterHeight 的比率
+     * 底部高度
      */
-    protected float mFooterTriggerRate = 1.0f;
+    protected int mFooterHeight;
     /**
      * 底部列表顶部对齐的锚点
      */
@@ -111,7 +116,8 @@ public class StackScrollLayout extends FrameLayout {
     private int mTouchSlop;
     private Scroller mScroller;
 
-    private OnRefreshListener mOnRefreshListener;
+    private OnRefreshListener mRefreshListener;
+    private OnLoadMoreListener mLoadMoreListener;
 
     public StackScrollLayout(@NonNull Context context) {
         this(context, null);
@@ -130,14 +136,26 @@ public class StackScrollLayout extends FrameLayout {
 
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mScroller = new Scroller(context);
+
+        final float density = Resources.getSystem().getDisplayMetrics().density;
+        mFooterHeight = (int) (DEFAULT_FOOTER_HEIGHT * density);
+        mHeaderHeight = (int) (DEFAULT_HEADER_HEIGHT * density);
     }
 
-    public OnRefreshListener getOnRefreshListener() {
-        return mOnRefreshListener;
+    public OnRefreshListener getRefreshListener() {
+        return mRefreshListener;
     }
 
-    public void setOnRefreshListener(OnRefreshListener refreshListener) {
-        this.mOnRefreshListener = refreshListener;
+    public void setRefreshListener(OnRefreshListener refreshListener) {
+        this.mRefreshListener = refreshListener;
+    }
+
+    public OnLoadMoreListener getLoadMoreListener() {
+        return mLoadMoreListener;
+    }
+
+    public void setLoadMoreListener(OnLoadMoreListener loadMoreListener) {
+        this.mLoadMoreListener = loadMoreListener;
     }
 
     @Override
@@ -151,7 +169,6 @@ public class StackScrollLayout extends FrameLayout {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         final int y = (int) (ev.getY() + 0.5f);
-        final int x = (int) (ev.getX() + 0.5f);
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mLastFocusY = y;
@@ -179,7 +196,7 @@ public class StackScrollLayout extends FrameLayout {
             case MotionEvent.ACTION_DOWN:
                 break;
             case MotionEvent.ACTION_MOVE:
-                if(ev.getPointerCount() != 1) return true;
+                if (ev.getPointerCount() != 1) return true;
                 mRecyclerView.getGlobalVisibleRect(mTempRect);
                 if (!mTempRect.contains((int) ev.getRawX(), (int) ev.getRawY())) return false;
                 if (mIsScrollUp) {
@@ -213,30 +230,43 @@ public class StackScrollLayout extends FrameLayout {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
-                if(event.getPointerCount() != 1) return true;
+                if (event.getPointerCount() != 1) return true;
                 if (mIsScrollUp) {
                     consumed = mRecyclerView.getTranslationY() != 0;
                     if (mRecyclerView.getTranslationY() != 0) {
-                        if (Math.abs(mDistanceY) < mTouchSlop) return false;
+//                        if (Math.abs(mDistanceY) < mTouchSlop) return false;
                         updateRecyclerViewTransitionY(mDistanceY);
                         consumed = true;
                     } else if (layoutManager != null && layoutManager.findLastCompletelyVisibleItemPosition() == layoutManager.getItemCount() - 1) {
                         // recyclerView 内部不能再向上滑动时(加载更多)
+                        mLastStatus = mCurrentStatus;
                         mCurrentStatus = STATUS_LOAD_MORE;
+                        final int distance = (int) (-mDistanceY * mScrollFriction);
+                        mScroller.startScroll(0, mTotalScrollY, 0, distance);
+                        if(mLoadMoreListener != null) {
+                            float progress = (1.0f * mTotalScrollY) / (mFooterHeight * mFooterMaxDragRate);
+                            mLoadMoreListener.onLoadMoving(progress > 1.0f ? 1.0f : progress);
+                        }
+                        mTotalScrollY += distance;
+                        postInvalidate();
                         consumed = true;
-                        invalidate();
                     }
                 } else {
                     if (layoutManager != null && layoutManager.findFirstCompletelyVisibleItemPosition() == 0) {
                         if (mRecyclerView.getTranslationY() == mInitialTop) {
                             // recyclerView 滑动到底部并且内部不能再向下滑动时(下拉刷新)
+                            mLastStatus = mCurrentStatus;
                             mCurrentStatus = STATUS_PULL_TO_REFRESH;
                             final int distance = (int) (-mDistanceY * mScrollFriction);
                             mScroller.startScroll(0, mTotalScrollY, 0, distance);
+                            if (mRefreshListener != null) {
+                                float progress = (1.0f * mTotalScrollY) / (mHeaderHeight * mHeaderMaxDragRate);
+                                mRefreshListener.onRefreshMoving(progress > 1.0f ? 1.0f : progress);
+                            }
                             mTotalScrollY += distance;
-                            invalidate();
+                            postInvalidate();
                         } else {
-                            if (Math.abs(mDistanceY) < mTouchSlop) return false;
+//                            if (Math.abs(mDistanceY) < mTouchSlop) return false;
                             updateRecyclerViewTransitionY(mDistanceY);
                         }
                         consumed = true;
@@ -246,8 +276,17 @@ public class StackScrollLayout extends FrameLayout {
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                if(mCurrentStatus == STATUS_PULL_TO_REFRESH || mCurrentStatus == STATUS_LOAD_MORE) {
+                if (mLastStatus == STATUS_PULL_TO_REFRESH) {
                     mCurrentStatus = STATUS_RELEASE;
+                    if (mRefreshListener != null) {
+                        mRefreshListener.onRefresh();
+                    }
+                    rollBack();
+                } else if(mLastStatus == STATUS_LOAD_MORE) {
+                    mCurrentStatus = STATUS_RELEASE;
+                    if (mLoadMoreListener != null) {
+                        mLoadMoreListener.onLoadMore();
+                    }
                     rollBack();
                 } else {
                     autoScrollAnimator();
@@ -263,9 +302,9 @@ public class StackScrollLayout extends FrameLayout {
 
     @Override
     public void computeScroll() {
-        if(mScroller.computeScrollOffset()) {
+        if (mScroller.computeScrollOffset()) {
             scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
-            invalidate();
+            postInvalidate();
         }
     }
 
@@ -302,10 +341,11 @@ public class StackScrollLayout extends FrameLayout {
     }
 
     private void rollBack() {
-        if(mCurrentStatus == STATUS_RELEASE) {
+        if (mCurrentStatus == STATUS_RELEASE) {
             mScroller.startScroll(0, mTotalScrollY, 0, -mTotalScrollY);
             mTotalScrollY = 0;
-            invalidate();
+            mLastStatus = mCurrentStatus = STATUS_REFRESH_FINISHED;
+            postInvalidate();
         }
     }
 
@@ -347,11 +387,27 @@ public class StackScrollLayout extends FrameLayout {
         void onRefresh();
 
         /**
-         * 刷新下拉进度，[-1.0-1.0]，当progress为1.0时回调{@link OnRefreshListener#onRefresh()}
-         * 0~-1 刷新完成回滚状态，0-1为进行刷新，
+         * 刷新下拉进度，[0.0-1.0]，当progress为1.0时回调{@link OnRefreshListener#onRefresh()}
          *
-         * @param progress 刷新下来进度
+         * @param progress 刷新下拉进度
          */
-        void onRefreshProgress(float progress);
+        void onRefreshMoving(float progress);
+    }
+
+    /**
+     * 刷新接口
+     */
+    public interface OnLoadMoreListener {
+        /**
+         * 触发加载更多时候回调
+         */
+        void onLoadMore();
+
+        /**
+         * 加载更多进度，[0.0-1.0]，当progress为1.0时回调{@link OnLoadMoreListener#onLoadMore()}
+         *
+         * @param progress 加载上拉进度
+         */
+        void onLoadMoving(float progress);
     }
 }
