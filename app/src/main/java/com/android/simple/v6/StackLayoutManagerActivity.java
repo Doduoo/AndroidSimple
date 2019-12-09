@@ -16,7 +16,7 @@ public class StackLayoutManagerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_stack_layout_manager);
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new StackLayoutManager());
+        recyclerView.setLayoutManager(new V6StackLayoutManager());
         recyclerView.setAdapter(new V6Adapter());
     }
 }
