@@ -1,7 +1,6 @@
 package com.android.simple.v6;
 
 import android.annotation.SuppressLint;
-import android.graphics.Rect;
 import android.view.View;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,17 +39,7 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
 
         detachAndScrapAttachedViews(recycler);
 
-        int consumed = dy;
-
-        if (dy < 0) {
-            // 向下滑动, 防止越界
-            if (mOffsetY + consumed <= 0) {
-                mOffsetY = 0;
-                consumed = Math.abs(mOffsetY);
-            } else {
-                mOffsetY += consumed;
-            }
-        }
+        mOffsetY += dy;
 
         int childrenTop = 0;
 
@@ -62,23 +51,7 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
             int itemWidth = getDecoratedMeasuredWidth(child);
             int itemHeight = getDecoratedMeasuredHeight(child);
 
-            if (dy > 0) {
-                Rect rect = new Rect();
-                View lastChild = getChildAt(getItemCount() - 1);
-                if (lastChild != null) {
-                    lastChild.getHitRect(rect);
-                    if (lastChild.getBottom() - consumed <= getHeight()) {
-                        mOffsetY += (lastChild.getBottom() - getHeight());
-                        consumed = lastChild.getBottom() - getHeight();
-                    } else {
-                        mOffsetY += consumed;
-                    }
-                }
-            }
-
-            int left = 0;
             int top = childrenTop - mOffsetY;
-            int right = itemWidth;
             int bottom = childrenTop + itemHeight - mOffsetY;
 
             // 第一个Item位置不变
@@ -87,12 +60,12 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
                 bottom = childrenTop + itemHeight;
             }
 
-            layoutDecoratedWithMargins(child, left, top, right, bottom);
+            layoutDecoratedWithMargins(child, 0, top, itemWidth, bottom);
 
             if (mOnCoverItemListener != null && getItemCount() >= 2) {
                 View child0 = getChildAt(0);
                 View child1 = getChildAt(1);
-                if(child0 != null && child1 != null) {
+                if (child0 != null && child1 != null) {
                     final int child0Top = getDecoratedTop(child0);
                     final int child1Top = getDecoratedTop(child1);
                     mOnCoverItemListener.onCoverItem(child0Top >= child1Top);
@@ -101,7 +74,7 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
 
             childrenTop += itemHeight;
         }
-        return consumed;
+        return dy;
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -116,7 +89,30 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
-        return fill(recycler, state, dy);
+        if (getItemCount() == 0) return 0;
+        View child0 = getChildAt(0);
+        View child1 = getChildAt(1);
+        if (child0 == null || child1 == null) return 0;
+        int child0Bottom = getDecoratedBottom(child0);
+        int child1Top = getDecoratedTop(child1);
+
+        // 向下滑动item1上边不能超过item0的下边缘
+        if (dy < 0 && child1Top - dy >= child0Bottom) {
+            return fill(recycler, state, child1Top - child0Bottom);
+        }
+
+        View lastView = getChildAt(getItemCount() - 1);
+        // 向上滑动，最后一个item的底边不能超过屏幕的底边
+        if (lastView != null && dy > 0) {
+            int lastViewBottom = getDecoratedBottom(lastView);
+            if(lastViewBottom - dy <= getHeight()) {
+                return fill(recycler, state, lastViewBottom - getHeight());
+            } else {
+                return fill(recycler, state, dy);
+            }
+        } else {
+            return fill(recycler, state, dy);
+        }
     }
 
     public void setOnCoverItemListener(OnCoverItemListener onCoverItemListener) {
