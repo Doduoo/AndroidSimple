@@ -52,7 +52,17 @@ class V6Adapter : RecyclerView.Adapter<VH>() {
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         holder.contentText.text = mData[position]
-        holder.contentText.setBackgroundColor(mColor[position])
+        if (position == 0) {
+            holder.contentText.setTextColor(Color.WHITE)
+        } else {
+            holder.contentText.setTextColor(Color.BLACK)
+            holder.contentText.setBackgroundColor(Color.WHITE)
+        }
+
+        if(position == 1) {
+            holder.contentText.setBackgroundResource(R.drawable.shape_home_content_rv_bg)
+        }
+
         holder.contentText.setOnClickListener {
             Toast.makeText(it.context, holder.contentText.text, Toast.LENGTH_SHORT).show()
         }

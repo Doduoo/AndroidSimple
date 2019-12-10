@@ -14,8 +14,6 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
     private static final String TAG = "StackLayoutManager";
     // 垂直方向总的偏移量
     private int mOffsetY = 0;
-    // 列表的总高度
-    private int mTotalHeight;
 
     @Override
     public RecyclerView.LayoutParams generateDefaultLayoutParams() {
@@ -53,20 +51,6 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
             } else {
                 mOffsetY += consumed;
             }
-        } else {
-            // 向上滑动，防止越界
-            Rect rect = new Rect();
-            View lastChild = getChildAt(getItemCount() - 1);
-            if (lastChild != null) {
-                lastChild.getHitRect(rect);
-//                Log.d(TAG, String.format("last item rect = %s, height = %d", rect.toShortString(), getHeight()));
-                if (lastChild.getBottom() - consumed <= getHeight()) {
-                    mOffsetY += getHeight();
-                    consumed = lastChild.getBottom() - getHeight();
-                } else {
-                    mOffsetY += consumed;
-                }
-            }
         }
 
         int childrenTop = 0;
@@ -86,7 +70,7 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
                     lastChild.getHitRect(rect);
                     Log.d(TAG, String.format("last item rect = %s, height = %d", rect.toShortString(), getHeight()));
                     if (lastChild.getBottom() - consumed <= getHeight()) {
-                        mOffsetY += getHeight();
+                        mOffsetY += (lastChild.getBottom() - getHeight());
                         consumed = lastChild.getBottom() - getHeight();
                     } else {
                         mOffsetY += consumed;
@@ -108,7 +92,6 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
             layoutDecoratedWithMargins(child, left, top, right, bottom);
 
             childrenTop += itemHeight;
-            mTotalHeight += itemHeight;
         }
 
         Log.d(TAG, String.format("height = %d, width = %d", getHeight(), getWidth()));
