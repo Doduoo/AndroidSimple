@@ -1,14 +1,12 @@
-package com.android.simple.v6;
+package com.android.simple.v6.layout;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.ImageView;
 
 import com.android.simple.R;
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;

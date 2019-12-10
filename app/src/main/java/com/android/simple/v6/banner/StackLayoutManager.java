@@ -1,9 +1,8 @@
-package com.android.simple.v6;
+package com.android.simple.v6.banner;
 
 import android.util.Log;
 import android.view.View;
 
-import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
@@ -19,16 +18,10 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
     private int mItemWidth;
     private int mItemHeight;
     private int mCurrentPosition = 0;
-    private PagerSnapHelper mPagerSnapHelper;
-
-    public StackLayoutManager() {
-        mPagerSnapHelper = new PagerSnapHelper();
-    }
 
     @Override
     public void onAttachedToWindow(RecyclerView view) {
         super.onAttachedToWindow(view);
-        mPagerSnapHelper.attachToRecyclerView(view);
     }
 
     @Override
@@ -42,23 +35,24 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
     }
 
     @Override
-    public boolean canScrollVertically() {
-        return false;
+    public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+        fill(recycler, state, 0);
     }
 
     @Override
-    public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        fill(recycler, state);
+    public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
+        return fill(recycler, state, dx);
     }
 
-    private void fill(RecyclerView.Recycler recycler, RecyclerView.State state) {
+    private int fill(RecyclerView.Recycler recycler, RecyclerView.State state, int dx) {
         if (state.getItemCount() == 0 || state.isPreLayout()) {
             removeAndRecycleAllViews(recycler);
-            return;
+            return 0;
         }
 
         detachAndScrapAttachedViews(recycler);
 
+        mOffsetX += dx;
         int displayItemCount = Math.min(mCurrentPosition + mMaxItemCount, getItemCount());
 
         for (int i = displayItemCount - 1; i >= 0; i--) {
@@ -73,9 +67,9 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             int top = 0;
             int right = mItemWidth + mItemOffsetX * i;
             int bottom = mItemHeight;
-            float scale = (float) Math.pow(mScaleY, i+1);
+            float scale = (float) Math.pow(mScaleY, i + 1);
 
-            if(mCurrentPosition == i) {
+            if (mCurrentPosition == i) {
                 left += (-mOffsetX);
                 right += (-mOffsetX);
             }
@@ -85,15 +79,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             layoutDecoratedWithMargins(child, left, top, right, bottom);
             child.setScaleY(scale);
         }
-    }
-
-    @Override
-    public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
-        Log.d(TAG, "scrollHorizontallyBy: dx = " + dx);
-        detachAndScrapAttachedViews(recycler);
-        mOffsetX += dx;
-        offsetChildrenHorizontal(-dx);
-        fill(recycler, state);
         return dx;
     }
 

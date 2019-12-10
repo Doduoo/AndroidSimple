@@ -1,4 +1,4 @@
-package com.android.simple.v6
+package com.android.simple.v6.layout
 
 import android.graphics.Color
 import android.view.LayoutInflater

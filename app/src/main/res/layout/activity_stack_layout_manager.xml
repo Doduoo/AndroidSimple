@@ -9,7 +9,7 @@
     app:srlEnableNestedScrolling="true"
     app:srlEnableOverScrollBounce="true"
     app:srlEnableRefresh="true"
-    tools:context=".v6.StackLayoutManagerActivity">
+    tools:context=".v6.layout.StackLayoutManagerActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"

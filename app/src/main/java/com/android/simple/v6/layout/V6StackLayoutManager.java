@@ -1,4 +1,4 @@
-package com.android.simple.v6;
+package com.android.simple.v6.layout;
 
 import android.annotation.SuppressLint;
 import android.view.View;

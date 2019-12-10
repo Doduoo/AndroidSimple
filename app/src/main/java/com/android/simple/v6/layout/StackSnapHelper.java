@@ -1,4 +1,4 @@
-package com.android.simple.v6;
+package com.android.simple.v6.layout;
 
 import android.view.View;
 
