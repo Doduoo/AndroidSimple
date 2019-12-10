@@ -31,7 +31,6 @@ public class StackLayoutManagerActivity extends AppCompatActivity {
         v6StackLayoutManager.setOnCoverItemListener(new V6StackLayoutManager.OnCoverItemListener() {
             @Override
             public void onCoverItem(boolean isCover) {
-                Log.d("----", "isCover = " + isCover);
                 cornerImage.setVisibility(isCover ? View.VISIBLE : View.GONE);
             }
         });
