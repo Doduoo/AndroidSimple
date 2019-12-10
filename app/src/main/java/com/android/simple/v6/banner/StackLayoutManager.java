@@ -53,9 +53,10 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         detachAndScrapAttachedViews(recycler);
 
         mOffsetX += dx;
-        int displayItemCount = Math.min(mCurrentPosition + mMaxItemCount, getItemCount());
+        int endPosition = Math.min(mCurrentPosition + mMaxItemCount, getItemCount()) - 1;
 
-        for (int i = displayItemCount - 1; i >= 0; i--) {
+
+        for (int i = endPosition; i >= 0; i--) {
             View child = recycler.getViewForPosition(i);
             addView(child);
             measureChildWithMargins(child, 0, 0);
@@ -67,19 +68,22 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             int top = 0;
             int right = mItemWidth + mItemOffsetX * i;
             int bottom = mItemHeight;
-            float scale = (float) Math.pow(mScaleY, i + 1);
+
 
             if (mCurrentPosition == i) {
                 left += (-mOffsetX);
                 right += (-mOffsetX);
             }
 
-            Log.d(TAG, String.format("left = %d, top = %d, right = %d, bottom = %d, scale = %f", left, top, right, bottom, scale));
-
             layoutDecoratedWithMargins(child, left, top, right, bottom);
-            child.setScaleY(scale);
+            scale(child, i);
         }
         return dx;
+    }
+
+    private void scale(View child, int position) {
+        float scale = (float) Math.pow(mScaleY, position - mCurrentPosition);
+        child.setScaleY(scale);
     }
 
 }

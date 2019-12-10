@@ -42,7 +42,7 @@ class StackBannerAdapter : RecyclerView.Adapter<VH>() {
     )
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_v6, parent, false)
+        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_v6_banner, parent, false)
         return VH(itemView)
     }
 
