@@ -6,7 +6,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 
 import com.android.simple.R;
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
@@ -21,9 +23,18 @@ public class StackLayoutManagerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stack_layout_manager);
 
+        final ImageView cornerImage = findViewById(R.id.cornerImage);
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new V6StackLayoutManager());
+        V6StackLayoutManager v6StackLayoutManager = new V6StackLayoutManager();
+        recyclerView.setLayoutManager(v6StackLayoutManager);
         recyclerView.setAdapter(new V6Adapter());
+        v6StackLayoutManager.setOnCoverItemListener(new V6StackLayoutManager.OnCoverItemListener() {
+            @Override
+            public void onCoverItem(boolean isCover) {
+                Log.d("----", "isCover = " + isCover);
+                cornerImage.setVisibility(isCover ? View.VISIBLE : View.GONE);
+            }
+        });
 
         SmartRefreshLayout smartRefreshLayout = findViewById(R.id.refreshView);
         smartRefreshLayout.setOnRefreshListener(new OnRefreshListener() {

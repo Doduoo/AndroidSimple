@@ -1,10 +1,7 @@
 package com.android.simple.v6;
 
-import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,12 +14,8 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
     private static final String TAG = "StackLayoutManager";
     // 垂直方向总的偏移量
     private int mOffsetY = 0;
-    private boolean isScrollUp = false;
-    private ValueAnimator mValueAnimator;
-    private RecyclerView.Recycler mRecycler;
-    private RecyclerView.State mState;
-    private RecyclerView mRecyclerView;
     private StackSnapHelper mStackSnapHelper;
+    private OnCoverItemListener mOnCoverItemListener;
 
     @Override
     public RecyclerView.LayoutParams generateDefaultLayoutParams() {
@@ -36,12 +29,10 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        mRecycler = recycler;
-        mState = state;
-        fill(recycler, state, 0, false);
+        fill(recycler, state, 0);
     }
 
-    private int fill(RecyclerView.Recycler recycler, RecyclerView.State state, int dy, boolean isAnimator) {
+    private int fill(RecyclerView.Recycler recycler, RecyclerView.State state, int dy) {
         if (state.getItemCount() == 0 || state.isPreLayout()) {
             removeAndRecycleAllViews(recycler);
             return 0;
@@ -50,13 +41,10 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
         detachAndScrapAttachedViews(recycler);
 
         int consumed = dy;
-        View child0 = recycler.getViewForPosition(0);
 
-
-        Log.d(TAG, String.format("mOffsetY = %d, consumed = %d, bottom = %d，mTotalHeight = %d", mOffsetY, consumed, child0.getBottom(), getHeight()));
         if (dy < 0) {
             // 向下滑动, 防止越界
-            if (mOffsetY + consumed <= 0 && !isAnimator) {
+            if (mOffsetY + consumed <= 0) {
                 mOffsetY = 0;
                 consumed = Math.abs(mOffsetY);
             } else {
@@ -79,8 +67,7 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
                 View lastChild = getChildAt(getItemCount() - 1);
                 if (lastChild != null) {
                     lastChild.getHitRect(rect);
-                    Log.d(TAG, String.format("last item rect = %s, height = %d", rect.toShortString(), getHeight()));
-                    if (lastChild.getBottom() - consumed <= getHeight() && !isAnimator) {
+                    if (lastChild.getBottom() - consumed <= getHeight()) {
                         mOffsetY += (lastChild.getBottom() - getHeight());
                         consumed = lastChild.getBottom() - getHeight();
                     } else {
@@ -102,11 +89,18 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
 
             layoutDecoratedWithMargins(child, left, top, right, bottom);
 
+            if (mOnCoverItemListener != null && getItemCount() >= 2) {
+                View child0 = getChildAt(0);
+                View child1 = getChildAt(1);
+                if(child0 != null && child1 != null) {
+                    final int child0Top = getDecoratedTop(child0);
+                    final int child1Top = getDecoratedTop(child1);
+                    mOnCoverItemListener.onCoverItem(child0Top >= child1Top);
+                }
+            }
+
             childrenTop += itemHeight;
         }
-
-        Log.d(TAG, String.format("height = %d, width = %d", getHeight(), getWidth()));
-
         return consumed;
     }
 
@@ -114,63 +108,25 @@ public class V6StackLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void onAttachedToWindow(RecyclerView view) {
         super.onAttachedToWindow(view);
-        mRecyclerView = view;
-        if(mStackSnapHelper == null) {
+        if (mStackSnapHelper == null) {
             mStackSnapHelper = new StackSnapHelper();
         }
         mStackSnapHelper.attachToRecyclerView(view);
-//        view.setOnTouchListener(mOnTouchListener);
     }
 
     @Override
     public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
-        isScrollUp = dy > 0;
-        return fill(recycler, state, dy, false);
+        return fill(recycler, state, dy);
     }
 
-    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (getItemCount() < 2) return false;
-                View child0 = getChildAt(0);
-                View child1 = getChildAt(1);
-                Rect rect0 = new Rect();
-                Rect rect1 = new Rect();
-                if (child0 != null && child1 != null) {
-                    child0.getHitRect(rect0);
-                    child1.getHitRect(rect1);
+    public void setOnCoverItemListener(OnCoverItemListener onCoverItemListener) {
+        this.mOnCoverItemListener = onCoverItemListener;
+    }
 
-                    Log.d(TAG, String.format("action = %d, child0 top = %d, bottom = %d, child1 top = %d, bottom = %d", event.getAction(), rect0.top, rect0.bottom, rect1.top, rect1.bottom));
-
-                    if (rect1.top > rect0.top && rect1.top < rect0.bottom) {
-                        if (isScrollUp) {
-                            smoothScrollToPosition(mRecyclerView, mState, 1);
-                            Log.d(TAG, "isScrollUp true top = " + rect1.top);
-                        } else {
-//                            autoScroll(0, rect1.top - rect0.bottom);
-
-                            smoothScrollToPosition(mRecyclerView, mState, 0);
-                            Log.d(TAG, "isScrollUp false top = " + (rect1.top - rect0.bottom));
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-    };
-
-
-    private void autoScroll(int start, int end) {
-        mValueAnimator = ValueAnimator.ofInt(start, end);
-        mValueAnimator.setDuration(2000);
-        mValueAnimator.start();
-        mValueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                int animatedValue = (int) animation.getAnimatedValue();
-                fill(mRecycler, mState, animatedValue, true);
-            }
-        });
+    public interface OnCoverItemListener {
+        /**
+         * @param isCover 第一个item是否被完全覆盖
+         */
+        void onCoverItem(boolean isCover);
     }
 }
