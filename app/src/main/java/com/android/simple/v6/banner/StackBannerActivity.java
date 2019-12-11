@@ -16,7 +16,7 @@ public class StackBannerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_stack_banner_manager);
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        StackLayoutManager stackLayoutManager = new StackLayoutManager();
+        SkidRightLayoutManager stackLayoutManager = new SkidRightLayoutManager(0.9f, 0.9f);
         recyclerView.setLayoutManager(stackLayoutManager);
         recyclerView.setAdapter(new StackBannerAdapter());
     }

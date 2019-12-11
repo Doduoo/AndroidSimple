@@ -1,5 +1,6 @@
 package com.android.simple.v6.banner;
 
+import android.graphics.Rect;
 import android.util.Log;
 import android.view.View;
 
@@ -41,6 +42,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
+        changeCurrentPosition();
         return fill(recycler, state, dx);
     }
 
@@ -51,7 +53,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         }
 
         detachAndScrapAttachedViews(recycler);
-
         mOffsetX += dx;
         int endPosition = Math.min(mCurrentPosition + mMaxItemCount, getItemCount()) - 1;
 
@@ -69,21 +70,36 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             int right = mItemWidth + mItemOffsetX * i;
             int bottom = mItemHeight;
 
-
             if (mCurrentPosition == i) {
                 left += (-mOffsetX);
                 right += (-mOffsetX);
             }
 
             layoutDecoratedWithMargins(child, left, top, right, bottom);
-            scale(child, i);
+            scale(child, i, dx);
         }
         return dx;
     }
 
-    private void scale(View child, int position) {
+    private void scale(View child, int position, int dx) {
         float scale = (float) Math.pow(mScaleY, position - mCurrentPosition);
         child.setScaleY(scale);
     }
 
+    private void changeCurrentPosition() {
+        View child = getChildAt(mCurrentPosition);
+        if (child != null) {
+            Rect childLeft = getBoundary(child);
+            Log.d(TAG, String.format("mCurrentPosition = %d, childLeft.right = %d", mCurrentPosition, childLeft.right));
+            if (childLeft.right <= 0) {
+                mCurrentPosition++;
+            }
+        }
+    }
+
+    private Rect getBoundary(View child) {
+        Rect out = new Rect();
+        child.getGlobalVisibleRect(out);
+        return out;
+    }
 }
